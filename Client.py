@@ -36,7 +36,10 @@ def initialisation():
 
     global connections
     connections = []
-
+    global server_address
+    server_address = input("Input addressing server address")
+    if server_address == "0":
+        server_address = home_address
 
 def server_connector(server_address):
     request = socket.socket()
@@ -78,6 +81,8 @@ class MainLoop(threading.Thread):
                     SDPTPTC.table_printer(connections)
                 elif instruction.startswith('##H'):
                     SDPTPTC.help()
+                elif instruction.startswith('##I'):
+                    SDPTPTC.who_am_i(identity,home_address,server_address)
             elif instruction.startswith('#') and instruction[0] in names:
                 instructions.append([instruction])
 
@@ -89,8 +94,7 @@ class RequestHandler(threading.Thread):
     def run(self):
         while running:
             request_handler_socket = socket.socket()
-            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 5112,
-                                                                                  home_address)
+            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 5112,server_address)
             port = ports.get()
             request_sender_socket.send(str(port).encode())
             request_sender_information = request_sender_socket.recv(128).decode()
@@ -214,7 +218,7 @@ def conversation_starter(recipient, receiver_address, receiver_port, sender_port
 
 def main():
     initialisation()
-    server_connector(home_address)
+    server_connector(server_address)
     main_loop = MainLoop()
     request_handler = RequestHandler()
     conversation_handler = ConversationHandler()
