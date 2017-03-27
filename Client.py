@@ -76,6 +76,8 @@ class MainLoop(threading.Thread):
                     input_barrier.wait()
                 elif instruction.startswith('##T'):
                     SDPTPTC.table_printer(connections)
+                elif instruction.startswith('##H'):
+                    SDPTPTC.help()
             elif instruction.startswith('#') and instruction[0] in names:
                 instructions.append([instruction])
 
