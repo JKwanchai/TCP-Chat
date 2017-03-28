@@ -1,8 +1,8 @@
 import threading
-import time
-import socket
 import queue
 import SDPTPTC
+import time
+import socket
 
 
 def initialisation():
@@ -33,7 +33,7 @@ def initialisation():
     input_barrier = threading.Barrier(2)
 
     global commands
-    commands = ['##C', '##H', '##I', '##S', '##T','##F']
+    commands = ['##C', '##H', '##I', '##S', '##T', '##F']
 
     global connections
     connections = []
@@ -109,10 +109,13 @@ class RequestHandler(threading.Thread):
             request_sender_information = request_sender_socket.recv(128).decode()
             request_sender_port = int(request_sender_information[0:4])
             request_sender_identity = request_sender_information[5:]
+            numerical_key = SDPTPTC.key_generation_server(request_sender_socket)
+            key = SDPTPTC.create_key(numerical_key)
+
             request_sender_socket.shutdown(socket.SHUT_RDWR)
             request_handler_socket.close()
             request_sender_socket.close()
-            conversation_starter(True, request_sender_address, request_sender_port, port, request_sender_identity)
+            conversation_starter(True, request_sender_address, request_sender_port, port, request_sender_identity, key)
 
 
 class ConversationHandler(threading.Thread):
@@ -132,7 +135,7 @@ class ConversationHandler(threading.Thread):
                 parameters.append(ports.get())
                 parameters.append(5112)
                 parameters.append(split_instruction[1])
-                conversation_starter(False, parameters[0], parameters[1], parameters[2], parameters[3])
+                conversation_starter(False, parameters[0], parameters[1], parameters[2], parameters[3], 00)
             elif split_instruction[0].startswith('##S'):
                 for connection in connections:
                     if connection[1] == split_instruction[1]:
@@ -140,15 +143,16 @@ class ConversationHandler(threading.Thread):
                         parameters.append(ports.get())
                         parameters.append(5112)
                         parameters.append(connection[1])
-                        conversation_starter(False, parameters[0], parameters[1], parameters[2], parameters[3])
+                        conversation_starter(False, parameters[0], parameters[1], parameters[2], parameters[3], 00)
 
 
 class Transmitter(threading.Thread):
-    def __init__(self, address, port, receiver_identity):
+    def __init__(self, address, port, receiver_identity, key):
         threading.Thread.__init__(self)
         self.port = port
         self.address = address
         self.receiver_identity = receiver_identity
+        self.key = key
 
     def run(self):
         names.append(self.getName())
@@ -160,8 +164,8 @@ class Transmitter(threading.Thread):
             while len(instructions) != 0:
                 if instructions[0][0].startswith('#{0}'.format(self.receiver_identity)):
                     split_instruction = (instructions.pop(0)[0]).split(' ', 1)
-                    message = (identity + ': ' + split_instruction[1] + '\t  [' + str(time.ctime()) + ']').encode()
-                    transmitter_socket.send(message)
+                    message = SDPTPTC.encode(self.key, (identity + ': ' + split_instruction[1]))
+                    transmitter_socket.send(message.encode())
 
 
 class AddressingReceiver(threading.Thread):
@@ -188,9 +192,10 @@ class AddressingReceiver(threading.Thread):
 
 
 class Receiver(threading.Thread):
-    def __init__(self, port):
+    def __init__(self, port, key):
         threading.Thread.__init__(self)
         self.port = port
+        self.key = key
 
     def run(self):
         receiver_socket = socket.socket()
@@ -201,28 +206,26 @@ class Receiver(threading.Thread):
             while True:
                 message = transmitter_socket.recv(4096).decode()
                 if message != '':
-                    print(message)
+                    print((SDPTPTC.decode(self.key, message) + '\t' + str(time.ctime())))
 
 
-def conversation_starter(recipient, receiver_address, receiver_port, sender_port, sender_identity):
+def conversation_starter(recipient, receiver_address, receiver_port, sender_port, sender_identity, key):
     if recipient:
         receiver_address = receiver_address[0]
-        transmitter_thread = Transmitter(receiver_address, receiver_port, sender_identity)
-        receiver_thread = Receiver(sender_port)
-        transmitter_thread.start()
-        receiver_thread.start()
     elif not recipient:
         request = socket.socket()
         request = SDPTPTC.fail_repeat_connector(request, receiver_address, sender_port, sender_identity)
         sender_port = ports.get()
         request.send((str(sender_port) + ' ' + identity).encode())
         receiver_port = int((request.recv(128)).decode())
+        key = SDPTPTC.key_generation_client(request)
+        key = SDPTPTC.create_key(key)
         request.shutdown(socket.SHUT_RDWR)
         request.close()
-        transmitter_thread = Transmitter(receiver_address, receiver_port, sender_identity)
-        receiver_thread = Receiver(sender_port)
-        transmitter_thread.start()
-        receiver_thread.start()
+    transmitter_thread = Transmitter(receiver_address, receiver_port, sender_identity, key)
+    receiver_thread = Receiver(sender_port, key)
+    transmitter_thread.start()
+    receiver_thread.start()
 
 
 def main():
