@@ -29,3 +29,16 @@ def socket_binder(socket_object,port,home_address):
 def table_printer(connections):
     for row in connections:
         print("{1} - {0}".format(row[0],row[1]))
+
+def help():
+    print("""
+Remeber when inputing commands seperate the different values using a space
+
+Command\t##C\tUsage ##C Peer_Ident Peer_I.P._Address\tGuidance\tUsed to connect to another peer knowing their I.P address
+Command\t##H\tUsage ##H                             \tGuidance\tIt's what your using Matty
+Command\t##S\tUsage ##S Peer_Ident                  \tGuidance\tUsed to connect to another peer connected to the addressing server
+Command\t##T\tUsage ##T                             \tGuidance\tUsed to view the list of active peers
+    """)
+
+def who_am_i(identity,home_address,addressing_server_address):#This is definitely not a refrence to Jackie Chan 
+    print("Identity is {0} @ {1} connected to an Addressing Server @ {2}".format(identity,home_address,addressing_server_address))
