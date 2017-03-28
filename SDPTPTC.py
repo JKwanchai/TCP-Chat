@@ -38,6 +38,8 @@ Command\t##C\tUsage ##C Peer_Ident Peer_I.P._Address\tGuidance\tUsed to connect 
 Command\t##H\tUsage ##H                             \tGuidance\tIt's what your using Matty
 Command\t##S\tUsage ##S Peer_Ident                  \tGuidance\tUsed to connect to another peer connected to the addressing server
 Command\t##T\tUsage ##T                             \tGuidance\tUsed to view the list of active peers
+Command\t##T\tUsage ##F                             \tGuidance\tUsed to clear the instruction buffer use in case of emergency, when you see lots of red text/error Matty
+
     """)
 
 def who_am_i(identity,home_address,addressing_server_address):#This is definitely not a refrence to Jackie Chan 

@@ -33,7 +33,7 @@ def initialisation():
     input_barrier = threading.Barrier(2)
 
     global commands
-    commands = ['##C', '##H', '##I', '##S', '##T']
+    commands = ['##C', '##H', '##I', '##S', '##T','##F']
 
     global connections
     connections = []
@@ -70,6 +70,7 @@ class MainLoop(threading.Thread):
     def run(self):
         while running:
             # Lock all threads which read from instructions
+
             instruction = input()
             # Unlock all threads which read from instructions
             if instruction[:3] in commands:
@@ -85,6 +86,11 @@ class MainLoop(threading.Thread):
                     SDPTPTC.help()
                 elif instruction.startswith('##I'):
                     SDPTPTC.who_am_i(identity, home_address, server_address)
+                elif instruction.startswith('##F'):
+                    length = len(instructions)
+                    for index in range(length):
+                        instructions.pop(index)
+                    print("Instruction buffer cleared of {0} instructions".format(length))
             elif instruction.startswith('#'):
                 instructions.append([instruction])
 
