@@ -4,6 +4,7 @@ import socket
 import queue
 import SDPTPTC
 
+
 def initialisation():
     global instructions
     instructions = []
@@ -40,6 +41,7 @@ def initialisation():
     server_address = input("Input addressing server address")
     if server_address == "0":
         server_address = home_address
+
 
 def server_connector(server_address):
     request = socket.socket()
@@ -82,8 +84,8 @@ class MainLoop(threading.Thread):
                 elif instruction.startswith('##H'):
                     SDPTPTC.help()
                 elif instruction.startswith('##I'):
-                    SDPTPTC.who_am_i(identity,home_address,server_address)
-            elif instruction.startswith('#') and instruction[0] in names:
+                    SDPTPTC.who_am_i(identity, home_address, server_address)
+            elif instruction.startswith('#'):
                 instructions.append([instruction])
 
 
@@ -94,7 +96,8 @@ class RequestHandler(threading.Thread):
     def run(self):
         while running:
             request_handler_socket = socket.socket()
-            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 5112,server_address)
+            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 5112,
+                                                                                  server_address)
             port = ports.get()
             request_sender_socket.send(str(port).encode())
             request_sender_information = request_sender_socket.recv(128).decode()
