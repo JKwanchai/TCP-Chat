@@ -4,6 +4,15 @@ import socket
 import queue
 import SDPTPTC
 
+class AddressingServerThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        initialisation()
+        request_handler = RequestHandler()
+        request_handler.start()
+
 
 def initialisation():
     global home_address
@@ -26,6 +35,7 @@ def initialisation():
     global connections_transmission
     connections_transmission = ""
 
+
 def connection_update():
     for connection in connections:
         connections_transmission = ""
@@ -35,6 +45,7 @@ def connection_update():
         update[1] = True
     return connections_transmission
 
+
 class RequestHandler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -42,14 +53,16 @@ class RequestHandler(threading.Thread):
     def run(self):
         while running:
             request_handler_socket = socket.socket()
-            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket,6112,home_address)
+            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 6112,
+                                                                                  home_address)
             port = ports.get()
             request_sender_socket.send(str(port).encode())
             request_sender_identity = request_sender_socket.recv(128).decode()
             request_sender_socket.shutdown(socket.SHUT_RDWR)
             request_handler_socket.close()
             request_sender_socket.close()
-            conversation_starter(True, request_sender_address , port, request_sender_identity)
+            conversation_starter(True, request_sender_address, port, request_sender_identity)
+
 
 class Transmitter(threading.Thread):
     def __init__(self, address, port, receiver_identity):
@@ -60,7 +73,8 @@ class Transmitter(threading.Thread):
 
     def run(self):
         transmitter_socket = socket.socket()
-        transmitter_socket = SDPTPTC.fail_repeat_connector(transmitter_socket,self.address,self.port,self.receiver_identity)
+        transmitter_socket = SDPTPTC.fail_repeat_connector(transmitter_socket, self.address, self.port,
+                                                           self.receiver_identity)
 
         connections.append([self.address, self.receiver_identity])
         update_list.append([self.getName(), False])
@@ -69,18 +83,17 @@ class Transmitter(threading.Thread):
         while True:
             try:
                 if update_list[index][1]:
-                    print("Updating {0} @ {1}".format(self.receiver_identity,self.address))
+                    print("Updating {0} @ {1}".format(self.receiver_identity, self.address))
                     transmitter_socket.send(connections_transmission.encode())
                     update_list[index][1] = False
             except socket.error:
                 print("Closing")
-                connections[index] = ["",""]
-                update_list[index] = ["",False]
+                connections[index] = ["", ""]
+                update_list[index] = ["", False]
                 connections_transmission = connection_update()
 
                 break
             time.sleep(15)
-
 
 
 def conversation_starter(recipient, receiver_address, receiver_port, sender_identity):
@@ -92,8 +105,8 @@ def conversation_starter(recipient, receiver_address, receiver_port, sender_iden
 
 
 def main():
-    initialisation()
-    request_handler = RequestHandler()
-    request_handler.start()
+    addressing_thread = AddressingServerThread()
+    addressing_thread.start()
+
 
 main()
