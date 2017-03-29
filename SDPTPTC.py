@@ -36,9 +36,9 @@ def table_printer(connections):
         print("{1} - {0}".format(row[0], row[1]))
 
 
-def help():
+def help_command():
     print("""
-Remeber when inputing commands seperate the different values using a space
+Remember when inputting commands separate the different values using a space
 
 Command\t##C\tUsage ##C Peer_Ident Peer_I.P._Address\tGuidance\tUsed to connect to another peer knowing their I.P address
 Command\t##H\tUsage ##H                             \tGuidance\tIt's what your using Matty
@@ -49,7 +49,7 @@ Command\t##T\tUsage ##F                             \tGuidance\tUsed to clear th
     """)
 
 
-def who_am_i(identity, home_address, addressing_server_address):  # This is definitely not a refrence to Jackie Chan
+def who_am_i(identity, home_address, addressing_server_address):  # This is definitely not a reference to Jackie Chan
     print("Identity is {0} @ {1} connected to an Addressing Server @ {2}".format(identity, home_address,
                                                                                  addressing_server_address))
 
@@ -83,7 +83,7 @@ def key_generation_client(socket_object):
 def key_generation_server(socket_object):
     time.sleep(2.5)
     s_g_prime = bytes_to_int(socket_object.recv(32))
-    prime_root_modulo = secrets.choice(primeRoots(s_g_prime))
+    prime_root_modulo = secrets.choice(prime_roots(s_g_prime))
     socket_object.send(int_to_bytes(prime_root_modulo))
     secret_integer = secrets.randbits(16)
     server_public_integer = (prime_root_modulo ** secret_integer) % s_g_prime
@@ -93,7 +93,7 @@ def key_generation_server(socket_object):
     return shared_secret
 
 
-def primeRoots(modulo):
+def prime_roots(modulo):
     roots = []
     required_set = set(num for num in range(1, modulo) if math.gcd(num, modulo) == 1)
 
@@ -107,7 +107,7 @@ def primeRoots(modulo):
 def s_g_prime_generator(limit):
     i = 3
     q = [2]
-    S_g = []
+    s_g_primes = []
     while i < limit:
         p = 1
         for x in range(2, round(i ** 0.5) + 1):
@@ -116,9 +116,9 @@ def s_g_prime_generator(limit):
             q += [i]
             s = (i - 1) / 2
             if s in q:
-                S_g.append(int(s))
+                s_g_primes.append(int(s))
         i += 2
-    return S_g[10:]
+    return s_g_primes[10:]
 
 
 def create_key(numerical_key):

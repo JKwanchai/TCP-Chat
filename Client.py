@@ -1,8 +1,9 @@
-import threading
 import queue
-import SDPTPTC
-import time
 import socket
+import threading
+import time
+
+import SDPTPTC
 
 
 def initialisation():
@@ -10,7 +11,7 @@ def initialisation():
     instructions = []
 
     global identity
-    identity = 'Joe'
+    identity = input("Please input identity")
 
     global home_address
     home_address = SDPTPTC.get_local_address()
@@ -37,13 +38,14 @@ def initialisation():
 
     global connections
     connections = []
+
     global server_address
     server_address = input("Input addressing server address")
     if server_address == "0":
         server_address = home_address
 
 
-def server_connector(server_address):
+def server_connector():
     request = socket.socket()
     request = SDPTPTC.fail_repeat_connector(request, server_address, 6112, "Addressing Server")
     receiver_port = int((request.recv(128)).decode())
@@ -63,6 +65,36 @@ def connections_string_array(connections_raw):
             connections.append(connection.split(","))
 
 
+def conversation_starter(recipient, receiver_address, receiver_port, sender_port, sender_identity, key):
+    if recipient:
+        receiver_address = receiver_address[0]
+    elif not recipient:
+        request = socket.socket()
+        request = SDPTPTC.fail_repeat_connector(request, receiver_address, sender_port, sender_identity)
+        sender_port = ports.get()
+        request.send((str(sender_port) + ' ' + identity).encode())
+        receiver_port = int((request.recv(128)).decode())
+        key = SDPTPTC.key_generation_client(request)
+        key = SDPTPTC.create_key(key)
+        request.shutdown(socket.SHUT_RDWR)
+        request.close()
+    transmitter_thread = Transmitter(receiver_address, receiver_port, sender_identity, key)
+    receiver_thread = Receiver(sender_port, key)
+    transmitter_thread.start()
+    receiver_thread.start()
+
+
+def main():
+    initialisation()
+    server_connector()
+    main_loop = MainLoop()
+    request_handler = RequestHandler()
+    conversation_handler = ConversationHandler()
+    main_loop.start()
+    request_handler.start()
+    conversation_handler.start()
+
+
 class MainLoop(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -72,7 +104,6 @@ class MainLoop(threading.Thread):
             # Lock all threads which read from instructions
 
             instruction = input()
-            # Unlock all threads which read from instructions
             if instruction[:3] in commands:
                 if instruction.startswith('##C'):
                     instructions.append([instruction])
@@ -83,7 +114,7 @@ class MainLoop(threading.Thread):
                 elif instruction.startswith('##T'):
                     SDPTPTC.table_printer(connections)
                 elif instruction.startswith('##H'):
-                    SDPTPTC.help()
+                    SDPTPTC.help_command()
                 elif instruction.startswith('##I'):
                     SDPTPTC.who_am_i(identity, home_address, server_address)
                 elif instruction.startswith('##F'):
@@ -102,8 +133,7 @@ class RequestHandler(threading.Thread):
     def run(self):
         while running:
             request_handler_socket = socket.socket()
-            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 5112,
-                                                                                  server_address)
+            request_sender_socket, request_sender_address = SDPTPTC.socket_binder(request_handler_socket, 5112, server_address)
             port = ports.get()
             request_sender_socket.send(str(port).encode())
             request_sender_information = request_sender_socket.recv(128).decode()
@@ -183,10 +213,10 @@ class AddressingReceiver(threading.Thread):
             while True:
                 message = ""
                 message += transmitter_socket.recv(4096).decode()
-                currentlen = len(connections)
+                current_length = len(connections)
                 connections_string_array(message)
-                newlen = len(connections)
-                if newlen > currentlen and currentlen != 0:
+                new_length = len(connections)
+                if new_length > current_length > 0:
                     print("New user has joined server {0} @ {1}".format(connections[-1][1], connections[-1][0]))
                 time.sleep(15)
 
@@ -207,36 +237,6 @@ class Receiver(threading.Thread):
                 message = transmitter_socket.recv(4096).decode()
                 if message != '':
                     print((SDPTPTC.decode(self.key, message) + '\t' + str(time.ctime())))
-
-
-def conversation_starter(recipient, receiver_address, receiver_port, sender_port, sender_identity, key):
-    if recipient:
-        receiver_address = receiver_address[0]
-    elif not recipient:
-        request = socket.socket()
-        request = SDPTPTC.fail_repeat_connector(request, receiver_address, sender_port, sender_identity)
-        sender_port = ports.get()
-        request.send((str(sender_port) + ' ' + identity).encode())
-        receiver_port = int((request.recv(128)).decode())
-        key = SDPTPTC.key_generation_client(request)
-        key = SDPTPTC.create_key(key)
-        request.shutdown(socket.SHUT_RDWR)
-        request.close()
-    transmitter_thread = Transmitter(receiver_address, receiver_port, sender_identity, key)
-    receiver_thread = Receiver(sender_port, key)
-    transmitter_thread.start()
-    receiver_thread.start()
-
-
-def main():
-    initialisation()
-    server_connector(server_address)
-    main_loop = MainLoop()
-    request_handler = RequestHandler()
-    conversation_handler = ConversationHandler()
-    main_loop.start()
-    request_handler.start()
-    conversation_handler.start()
 
 
 main()
